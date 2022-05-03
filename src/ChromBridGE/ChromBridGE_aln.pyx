@@ -432,6 +432,36 @@ if __name__ == "__main__":
             raise Exception('TEST DID NOT PASS\nread: ' + read + '\nref1: ' + ref1 + '\nref2: ' + ref2)
 
     read,ref1,ref2,breakpoints = nw_breakpoint(
+                'AGGGGGA',
+                'AGGGGG',
+                'GGGGGA',
+		gap_score=-3,
+		mismatch_score=-3,
+		jump_score=-2,
+		cut_pos_incentive_score=1,
+		ref1_cut_pos=1,
+		ref2_cut_pos=0)
+    if read !=  'AGGGGGA' or \
+        ref1 != 'A      ' or \
+        ref2 != ' GGGGGA':
+            raise Exception('TEST DID NOT PASS\nread: ' + read + '\nref1: ' + ref1 + '\nref2: ' + ref2)
+
+    read,ref1,ref2,breakpoints = nw_breakpoint(
+                'AGGGGGA',
+                'AGGGGG',
+                'GGGGGA',
+		gap_score=-3,
+		mismatch_score=-3,
+		jump_score=-2,
+		cut_pos_incentive_score=1,
+		ref1_cut_pos=3,
+		ref2_cut_pos=2)
+    if read !=  'AGGGGGA' or \
+        ref1 != 'AGG    ' or \
+        ref2 != '   GGGA':
+            raise Exception('TEST DID NOT PASS\nread: ' + read + '\nref1: ' + ref1 + '\nref2: ' + ref2)
+
+    read,ref1,ref2,breakpoints = nw_breakpoint(
                 'AAATTT',
                 'AAAAAA',
                 'TTTTTT')
