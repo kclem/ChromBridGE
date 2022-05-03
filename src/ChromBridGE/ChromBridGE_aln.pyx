@@ -112,12 +112,12 @@ def nw_breakpoint(read_seq,ref1_seq,ref2_seq,match_score=3,mismatch_score=-1,gap
             this_gap_up_score = gap_score
             if idx_read == len_read: #if the last column, no gap penalty
                 if pointer1[idx_ref1-1,idx_read] == pointer_gap_ref: #give pentaly for starting gap, but gaps after that are free
-                    this_gap_up_score = 0
+                    this_gap_up_score = perimeter_gap_extension_score
 
             this_gap_left_score = gap_score
             if idx_ref1 == len_ref1: #if the last row, no gap penalty
                 if pointer1[idx_ref1,idx_read-1] == pointer_gap_read: #give pentaly for starting gap, but gaps after that are free
-                    this_gap_left_score = 0
+                    this_gap_left_score = perimeter_gap_extension_score
 
             this_read_gap_score = score1[idx_ref1,idx_read-1] + this_gap_left_score
             this_ref_gap_score = score1[idx_ref1-1,idx_read] + this_gap_up_score
@@ -168,12 +168,12 @@ def nw_breakpoint(read_seq,ref1_seq,ref2_seq,match_score=3,mismatch_score=-1,gap
             this_gap_up_score = gap_score
             if idx_read == len_read: #if the last column, no gap penalty
                 if pointer2[idx_ref2-1,idx_read] == pointer_gap_ref: #give pentaly for starting gap, but gaps after that are free
-                    this_gap_up_score = 0
+                    this_gap_up_score = perimeter_gap_extension_score
 
             this_gap_left_score = gap_score
             if idx_ref2 == len_ref2: #if the last row, no gap penalty
                 if pointer2[idx_ref2,idx_read-1] == pointer_gap_read: #give pentaly for starting gap, but gaps after that are free
-                    this_gap_left_score = 0
+                    this_gap_left_score = perimeter_gap_extension_score
 
             this_read_gap_score = score2[idx_ref2,idx_read-1] + this_gap_left_score
             this_ref_gap_score = score2[idx_ref2-1,idx_read] + this_gap_up_score
