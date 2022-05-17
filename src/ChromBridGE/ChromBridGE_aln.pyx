@@ -111,19 +111,21 @@ def nw_breakpoint(read_seq,ref1_seq,ref2_seq,match_score=3,mismatch_score=-1,gap
 
             this_gap_up_score = gap_score
             if idx_read == len_read: #if the last column, no gap penalty
-                if pointer1[idx_ref1-1,idx_read] == pointer_gap_ref: #give pentaly for starting gap, but gaps after that are free
-                    this_gap_up_score = perimeter_gap_extension_score
+                this_gap_up_score = perimeter_gap_extension_score
+                if idx_ref1 ==len_ref1:#except for the bottom right cell with full penalty to shift alignments to the middle
+                    this_gap_up_score = gap_score
 
             this_gap_left_score = gap_score
             if idx_ref1 == len_ref1: #if the last row, no gap penalty
-                if pointer1[idx_ref1,idx_read-1] == pointer_gap_read: #give pentaly for starting gap, but gaps after that are free
-                    this_gap_left_score = perimeter_gap_extension_score
+                this_gap_left_score = perimeter_gap_extension_score
+                if idx_read == len_read:
+                    this_gap_left_score = gap_score
 
             this_read_gap_score = score1[idx_ref1,idx_read-1] + this_gap_left_score
             this_ref_gap_score = score1[idx_ref1-1,idx_read] + this_gap_up_score
             #technically, a 'jump' is a 'jump and consume' so it's two steps, but because you would never have two jumps in a row, we can consume a base from the read sequence and do two steps (jump and consume) in one step based on the max values from the last column
             this_jump_score = colmaxes2[idx_read-1] + jump_score + jump_incentive_ref1[idx_ref1 -1] + this_match_or_mismatch_score
-	    
+
             tmax = np.max([this_match_score,this_ref_gap_score,this_read_gap_score,this_jump_score])
 #            print('SCORE1')
 #            print('idx_read: ' + str(idx_read))
@@ -167,13 +169,15 @@ def nw_breakpoint(read_seq,ref1_seq,ref2_seq,match_score=3,mismatch_score=-1,gap
 
             this_gap_up_score = gap_score
             if idx_read == len_read: #if the last column, no gap penalty
-                if pointer2[idx_ref2-1,idx_read] == pointer_gap_ref: #give pentaly for starting gap, but gaps after that are free
-                    this_gap_up_score = perimeter_gap_extension_score
+                this_gap_up_score = perimeter_gap_extension_score
+                if idx_ref2 ==len_ref2:#except for the bottom right cell with full penalty to shift alignments to the middle
+                    this_gap_up_score = gap_score
 
             this_gap_left_score = gap_score
             if idx_ref2 == len_ref2: #if the last row, no gap penalty
-                if pointer2[idx_ref2,idx_read-1] == pointer_gap_read: #give pentaly for starting gap, but gaps after that are free
-                    this_gap_left_score = perimeter_gap_extension_score
+                this_gap_left_score = perimeter_gap_extension_score
+                if idx_read == len_read:
+                    this_gap_left_score = gap_score
 
             this_read_gap_score = score2[idx_ref2,idx_read-1] + this_gap_left_score
             this_ref_gap_score = score2[idx_ref2-1,idx_read] + this_gap_up_score
@@ -213,6 +217,8 @@ def nw_breakpoint(read_seq,ref1_seq,ref2_seq,match_score=3,mismatch_score=-1,gap
                 colmaxes2[idx_read] = tmax_plus_jump
                 colmaxesInd2[idx_read] = idx_ref2
 
+
+#    np.set_printoptions(threshold=np.inf)
 #    print('jump_incentive_ref1')
 #    print(jump_incentive_ref1)
 #    print('score1:')
@@ -281,7 +287,7 @@ def nw_breakpoint(read_seq,ref1_seq,ref2_seq,match_score=3,mismatch_score=-1,gap
                 final_ref2_aln.append(" ")
                 idx_read -= 1
                 curr_matrix = 2
-                breakpoints_ref2.append(idx_ref-1)
+                breakpoints_ref1.append(idx_ref-1)
                 idx_ref = colmaxesInd2[idx_read]
                 breakpoints_read.append(idx_read)
                 breakpoints_ref1.append(idx_ref)
@@ -310,10 +316,10 @@ def nw_breakpoint(read_seq,ref1_seq,ref2_seq,match_score=3,mismatch_score=-1,gap
                 final_ref1_aln.append(" ")
                 idx_read -= 1
                 curr_matrix = 1
-                breakpoints_ref1.append(idx_ref-1)
+                breakpoints_ref2.append(idx_ref-1)
                 idx_ref = colmaxesInd1[idx_read]
                 breakpoints_read.append(idx_read)
-                breakpoints_ref2.append(idx_ref)
+                breakpoints_ref1.append(idx_ref)
 
 #                final_read_aln.append(read_seq[idx_read-1])
 #                final_ref1_aln.append(" ")
@@ -337,6 +343,8 @@ def nw_breakpoint(read_seq,ref1_seq,ref2_seq,match_score=3,mismatch_score=-1,gap
 
 if __name__ == "__main__":
     print('Performing tests..')
+
+
 
     read,ref1,ref2,breakpoints = nw_breakpoint(
                 'AGGA',
@@ -431,6 +439,20 @@ if __name__ == "__main__":
         ref2 != '   A':
             raise Exception('TEST DID NOT PASS\nread: ' + read + '\nref1: ' + ref1 + '\nref2: ' + ref2)
 
+    #this test tests for breakpoint positions as well as preference for gaps to be at the end and the sequences compressed inward
+    # e.g. not this: --ACG-TT--
+    read,ref1,ref2,breakpoints = nw_breakpoint(
+                  'ACGTT',
+                'GGACAA',
+                   'CGTTTAA',
+		ref1_cut_pos=None,
+		ref2_cut_pos=None)
+    if read !=  '--ACGTT---' or \
+        ref1 != 'GGA       ' or \
+        ref2 != '   CGTTTAA' or \
+        breakpoints != ([1], [3], [0]):
+            raise Exception('TEST DID NOT PASS\nread: ' + read + '\nref1: ' + ref1 + '\nref2: ' + ref2 + '\nbreakpoints: ' + str(breakpoints))
+
     read,ref1,ref2,breakpoints = nw_breakpoint(
                 'AGGGGGA',
                 'AGGGGG',
@@ -501,15 +523,6 @@ if __name__ == "__main__":
             raise Exception('TEST DID NOT PASS\nread: ' + read + '\nref1: ' + ref1 + '\nref2: ' + ref2)
 
     read,ref1,ref2,breakpoints = nw_breakpoint(
-                'AAAATTT',
-                'AAA',
-                'TTTTTTT')
-    if read !=  'AAAATTT' or \
-        ref1 != 'AAA    ' or \
-        ref2 != '   TTTT' :
-            raise Exception('TEST DID NOT PASS\nread: ' + read + '\nref1: ' + ref1 + '\nref2: ' + ref2)
-
-    read,ref1,ref2,breakpoints = nw_breakpoint(
                 'AACCTTGG',
                 'AAA',
                 'CCCTGG')
@@ -539,7 +552,9 @@ if __name__ == "__main__":
     read,ref1,ref2,breakpoints = nw_breakpoint(
                 'ACTGACTGACTG',
                   'CTGCTGACT',
-                      'CCCTGG')
+                      'CCCTGG',
+                jump_score=-4,
+                      )
     if read !=  'ACTGACTGACTG' or \
         ref1 != '-CTG-CTGACT ' or \
         ref2 != '           G':

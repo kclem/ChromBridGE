@@ -2,7 +2,7 @@ import argparse
 import os
 import re
 import gzip
-import ChromBridGE_aln
+from ChromBridGE import ChromBridGE_aln
 
 
 
