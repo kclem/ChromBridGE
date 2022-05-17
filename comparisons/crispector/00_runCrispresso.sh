@@ -1,3 +1,0 @@
-CRISPRessoPooled -x /data/pinello/COMMON_DATA/REFERENCE_GENOMES/Homo_sapiens/UCSC/hg38/Sequence/Bowtie2Index/genome -r1 SRR13569599.1_1.fastq -r2 SRR13569599.1_2.fastq -n RAG2_Mock -p max --keep_intermediate
-CRISPRessoPooled -x /data/pinello/COMMON_DATA/REFERENCE_GENOMES/Homo_sapiens/UCSC/hg38/Sequence/Bowtie2Index/genome -r1 SRR13569597.1_1.fastq -r2 SRR13569597.1_2.fastq -n RAG2_16pct -p max --keep_intermediate
-CRISPRessoPooled -x /data/pinello/COMMON_DATA/REFERENCE_GENOMES/Homo_sapiens/UCSC/hg38/Sequence/Bowtie2Index/genome -r1 SRR13569598.1_1.fastq -r2 SRR13569598.1_2.fastq -n RAG2_XT -p max --keep_intermediate

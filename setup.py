@@ -9,14 +9,14 @@ with open("README.md", "r", encoding="utf-8") as fh:
 setup(
     ext_modules=cythonize("src/ChromBridGE/ChromBridGE_aln.pyx"),
     name = "ChromBridGE",
-    version = "0.0.1",
+    version = "0.0.2",
     author = "Kendell Clement",
     author_email = "kclement@mgh.harvard.edu",
     description = "Detection of CRISPR-Cas-associated translocations from next-generation sequencing data",
     long_description=long_description,
     keywords = "NGS Translocations",
     package_dir={"": "src"},
-    packages=find_packages(where="src"),
+    packages=find_packages(),
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Topic :: Utilities",
@@ -28,5 +28,6 @@ setup(
     },
     install_requires=[
         'numpy',
+        'Cython',
     ],
 )
