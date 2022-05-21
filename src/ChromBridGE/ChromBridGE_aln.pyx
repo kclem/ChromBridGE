@@ -1,6 +1,6 @@
 import numpy as np
 
-def nw_breakpoint(read_seq,ref1_seq,ref2_seq,match_score=3,mismatch_score=-1,gap_score=-2,perimeter_gap_extension_score=0,jump_score=-3,cut_pos_incentive_score=1,ref1_cut_pos=None,ref2_cut_pos=None):
+def nw_breakpoint(read_seq,ref1_seq,ref2_seq,match_score=3,mismatch_score=-1,gap_score=-2,perimeter_gap_extension_score=0,jump_score=-10,cut_pos_incentive_score=1,ref1_cut_pos=None,ref2_cut_pos=None):
     """
     Computes the optimal alignment of a read to two seqences, locating the optimal break between the two reads.
     The alignment score will be the sum of the match, mismatch, gap, and jump scores.
@@ -26,7 +26,8 @@ def nw_breakpoint(read_seq,ref1_seq,ref2_seq,match_score=3,mismatch_score=-1,gap
             tuple of (read, ref1, ref2) indices
             read indices show the positions of all breakpoints
             ref1 and ref2 indices show the positions at which the optimal alignment switches to that reference.
-	aln_score: score of alignment
+        aln_score: score of alignment
+        read_path: number of bases originating from each aligned read
 
     """
 
@@ -81,7 +82,7 @@ def nw_breakpoint(read_seq,ref1_seq,ref2_seq,match_score=3,mismatch_score=-1,gap
     colmaxes2 = np.copy(score2[0,:])
     colmaxesInd2 = [0]*(len_read + 1)
 
-    #crazy python bug caught here: 
+    #crazy python bug caught here:
     # incorrect:
     # colmaxesInd2 = [[0]]*(len_read + 1)
     # because this produces referencs to a single array...
@@ -258,6 +259,7 @@ def nw_breakpoint(read_seq,ref1_seq,ref2_seq,match_score=3,mismatch_score=-1,gap
     breakpoints_read = []
     breakpoints_ref1 = []
     breakpoints_ref2 = []
+    read_path = [curr_matrix]
     while idx_read > 0 or idx_ref > 0:
 #        print('curr matrix: ' + str(curr_matrix))
 #        print('idx_read: ' + str(idx_read))
@@ -294,6 +296,7 @@ def nw_breakpoint(read_seq,ref1_seq,ref2_seq,match_score=3,mismatch_score=-1,gap
                 idx_ref = colmaxesInd2[idx_read]
                 breakpoints_read.append(idx_read)
                 breakpoints_ref2.append(idx_ref)
+                read_path.append(curr_matrix)
 
         elif curr_matrix == 2:
 #            print('     pointer2: ' + str(pointer2[idx_ref,idx_read]))
@@ -323,6 +326,7 @@ def nw_breakpoint(read_seq,ref1_seq,ref2_seq,match_score=3,mismatch_score=-1,gap
                 idx_ref = colmaxesInd1[idx_read]
                 breakpoints_read.append(idx_read)
                 breakpoints_ref1.append(idx_ref)
+                read_path.append(curr_matrix)
 
 #                final_read_aln.append(read_seq[idx_read-1])
 #                final_ref1_aln.append(" ")
@@ -342,19 +346,13 @@ def nw_breakpoint(read_seq,ref1_seq,ref2_seq,match_score=3,mismatch_score=-1,gap
 #    print('read ref1: ' + final_ref1_aln)
 #    print('read ref2: ' + final_ref2_aln)
     return(final_read_aln,final_ref1_aln,final_ref2_aln,
-            (breakpoints_read,breakpoints_ref1,breakpoints_ref2),
-            max_score)
+            (breakpoints_read[::-1],breakpoints_ref1[::-1],breakpoints_ref2[::-1]),
+            max_score, read_path[::-1])
 
 if __name__ == "__main__":
     print('Performing tests..')
 
-    if read !=  'AGGA' or \
-        ref1 != 'A   ' or \
-        ref2 != ' GGA':
-            raise Exception('TEST DID NOT PASS\nread: ' + read + '\nref1: ' + ref1 + '\nref2: ' + ref2)
-
-
-    read,ref1,ref2,breakpoints,score = nw_breakpoint(
+    read,ref1,ref2,breakpoints,score,read_path = nw_breakpoint(
                 'AGGA',
                 'AGGG',
                 'GGGA',
@@ -372,7 +370,7 @@ if __name__ == "__main__":
         ref2 != ' GGA':
             raise Exception('TEST DID NOT PASS\nread: ' + read + '\nref1: ' + ref1 + '\nref2: ' + ref2)
 
-    read,ref1,ref2,breakpoints,score = nw_breakpoint(
+    read,ref1,ref2,breakpoints,score,read_path = nw_breakpoint(
                 'AGGA',
                 'AGGG',
                 'GGGA',
@@ -387,7 +385,7 @@ if __name__ == "__main__":
         ref2 != ' GGA':
             raise Exception('TEST DID NOT PASS\nread: ' + read + '\nref1: ' + ref1 + '\nref2: ' + ref2)
 
-    read,ref1,ref2,breakpoints,score = nw_breakpoint(
+    read,ref1,ref2,breakpoints,score,read_path = nw_breakpoint(
                 'AGGA',
                 'AGGG',
                 'GGGA',
@@ -402,7 +400,7 @@ if __name__ == "__main__":
         ref2 != '  GA':
             raise Exception('TEST DID NOT PASS\nread: ' + read + '\nref1: ' + ref1 + '\nref2: ' + ref2)
 
-    read,ref1,ref2,breakpoints,score = nw_breakpoint(
+    read,ref1,ref2,breakpoints,score,read_path = nw_breakpoint(
                 'AGGA',
                 'AGGG',
                 'GGGA',
@@ -417,7 +415,7 @@ if __name__ == "__main__":
         ref2 != '  GA':
             raise Exception('TEST DID NOT PASS\nread: ' + read + '\nref1: ' + ref1 + '\nref2: ' + ref2)
 
-    read,ref1,ref2,breakpoints,score = nw_breakpoint(
+    read,ref1,ref2,breakpoints,score,read_path = nw_breakpoint(
                 'AGGA',
                 'AGGG',
                 'GGGA',
@@ -432,7 +430,7 @@ if __name__ == "__main__":
         ref2 != '   A':
             raise Exception('TEST DID NOT PASS\nread: ' + read + '\nref1: ' + ref1 + '\nref2: ' + ref2)
 
-    read,ref1,ref2,breakpoints,score = nw_breakpoint(
+    read,ref1,ref2,breakpoints,score,read_path = nw_breakpoint(
                 'AGGA',
                 'AGGG',
                 'GGGA',
@@ -449,19 +447,23 @@ if __name__ == "__main__":
 
     #this test tests for breakpoint positions as well as preference for gaps to be at the end and the sequences compressed inward
     # e.g. not this: --ACG-TT--
-    read,ref1,ref2,breakpoints,score = nw_breakpoint(
+    read,ref1,ref2,breakpoints,score,read_path = nw_breakpoint(
                   'ACGTT',
                 'GGACAA',
                    'CGTTTAA',
+          gap_score=-3,
+          mismatch_score=-3,
+          jump_score=-2,
           ref1_cut_pos=None,
           ref2_cut_pos=None)
     if read !=  '--ACGTT---' or \
         ref1 != 'GGA       ' or \
         ref2 != '   CGTTTAA' or \
-        breakpoints != ([1], [3], [0]):
+        breakpoints != ([1], [3], [0]) or \
+        read_path != [1,2]:
             raise Exception('TEST DID NOT PASS\nread: ' + read + '\nref1: ' + ref1 + '\nref2: ' + ref2 + '\nbreakpoints: ' + str(breakpoints))
 
-    read,ref1,ref2,breakpoints,score = nw_breakpoint(
+    read,ref1,ref2,breakpoints,score,read_path = nw_breakpoint(
                 'AGGGGGA',
                 'AGGGGG',
                 'GGGGGA',
@@ -476,7 +478,7 @@ if __name__ == "__main__":
         ref2 != ' GGGGGA':
             raise Exception('TEST DID NOT PASS\nread: ' + read + '\nref1: ' + ref1 + '\nref2: ' + ref2)
 
-    read,ref1,ref2,breakpoints,score = nw_breakpoint(
+    read,ref1,ref2,breakpoints,score,read_path = nw_breakpoint(
                 'AGGGGGA',
                 'AGGGGG',
                 'GGGGGA',
@@ -491,10 +493,13 @@ if __name__ == "__main__":
         ref2 != '   GGGA':
             raise Exception('TEST DID NOT PASS\nread: ' + read + '\nref1: ' + ref1 + '\nref2: ' + ref2)
 
-    read,ref1,ref2,breakpoints,score = nw_breakpoint(
+    read,ref1,ref2,breakpoints,score,read_path = nw_breakpoint(
                 'AAATTT',
                 'AAAAAA',
-                'TTTTTT')
+                'TTTTTT',
+		gap_score=-3,
+		mismatch_score=-3,
+		jump_score=-2)
 #    print('read: ' + read)
 #    print('ref1: ' + ref1)
 #    print('ref2: ' + ref2)
@@ -503,75 +508,98 @@ if __name__ == "__main__":
         ref2 != '   TTT' :
             raise Exception('TEST DID NOT PASS\nread: ' + read + '\nref1: ' + ref1 + '\nref2: ' + ref2)
 
-    read,ref1,ref2,breakpoints,score = nw_breakpoint(
+    read,ref1,ref2,breakpoints,score,read_path = nw_breakpoint(
                 'TTTAAA',
                 'AAAAAA',
-                'TTTTTT')
+                'TTTTTT',
+		gap_score=-2,
+		mismatch_score=-1,
+		jump_score=-3)
     if read !=  'TTTAAA' or \
         ref1 != '   AAA' or \
         ref2 != 'TTT   ' :
             raise Exception('TEST DID NOT PASS\nread: ' + read + '\nref1: ' + ref1 + '\nref2: ' + ref2)
 
-    read,ref1,ref2,breakpoints,score = nw_breakpoint(
+    read,ref1,ref2,breakpoints,score,read_path = nw_breakpoint(
                 'AAAATTT',
                 'AAAAAA',
-                'TTTTTTT')
+                'TTTTTTT',
+		gap_score=-2,
+		mismatch_score=-1,
+		jump_score=-3)
     if read !=  'AAAATTT' or \
         ref1 != 'AAAA   ' or \
         ref2 != '    TTT' :
             raise Exception('TEST DID NOT PASS\nread: ' + read + '\nref1: ' + ref1 + '\nref2: ' + ref2)
 
-    read,ref1,ref2,breakpoints,score = nw_breakpoint(
+    read,ref1,ref2,breakpoints,score,read_path = nw_breakpoint(
                 'AAAATTT',
                 'AAAAA',
-                'TTTTTTT')
+                'TTTTTTT',
+		gap_score=-2,
+		mismatch_score=-1,
+		jump_score=-3)
     if read !=  'AAAATTT' or \
         ref1 != 'AAAA   ' or \
         ref2 != '    TTT' :
             raise Exception('TEST DID NOT PASS\nread: ' + read + '\nref1: ' + ref1 + '\nref2: ' + ref2)
 
-    read,ref1,ref2,breakpoints,score = nw_breakpoint(
+    read,ref1,ref2,breakpoints,score,read_path = nw_breakpoint(
                 'AACCTTGG',
                 'AAA',
-                'CCCTGG')
+                'CCCTGG',
+		gap_score=-2,
+		mismatch_score=-1,
+		jump_score=-3)
     if read !=  'AACCTTGG' or \
         ref1 != 'AA      ' or \
         ref2 != '  CCCTGG':
             raise Exception('TEST DID NOT PASS\nread: ' + read + '\nref1: ' + ref1 + '\nref2: ' + ref2)
 
-    read,ref1,ref2,breakpoints,score = nw_breakpoint(
+    read,ref1,ref2,breakpoints,score,read_path = nw_breakpoint(
                 'ACTGACTGACTG',
                 'ACTGACTGACTG',
-                'CCCTGG')
+                'CCCTGG',
+		gap_score=-2,
+		mismatch_score=-1,
+		jump_score=-3)
     if read !=  'ACTGACTGACTG' or \
         ref1 != 'ACTGACTGACTG' or \
         ref2 != '            ':
             raise Exception('TEST DID NOT PASS\nread: ' + read + '\nref1: ' + ref1 + '\nref2: ' + ref2)
 
-    read,ref1,ref2,breakpoints,score = nw_breakpoint(
+    read,ref1,ref2,breakpoints,score,read_path = nw_breakpoint(
                 'ACTGACTGACTG',
                 'ACTGCTGACTG',
-                'CCCTGG')
+                'CCCTGG',
+		gap_score=-2,
+		mismatch_score=-1,
+		jump_score=-3)
     if read !=  'ACTGACTGACTG' or \
         ref1 != 'ACTG-CTGACTG' or \
         ref2 != '            ':
             raise Exception('TEST DID NOT PASS\nread: ' + read + '\nref1: ' + ref1 + '\nref2: ' + ref2)
 
-    read,ref1,ref2,breakpoints,score = nw_breakpoint(
+    read,ref1,ref2,breakpoints,score,read_path = nw_breakpoint(
                 'ACTGACTGACTG',
                   'CTGCTGACT',
                       'CCCTGG',
-                jump_score=-4,
+	        gap_score=-2,
+		mismatch_score=-1,
+		jump_score=-4,
                       )
     if read !=  'ACTGACTGACTG' or \
         ref1 != '-CTG-CTGACT ' or \
         ref2 != '           G':
             raise Exception('TEST DID NOT PASS\nread: ' + read + '\nref1: ' + ref1 + '\nref2: ' + ref2)
 
-    read,ref1,ref2,breakpoints,score = nw_breakpoint(
+    read,ref1,ref2,breakpoints,score,read_path = nw_breakpoint(
                 'GTCGACTGACTG',
                 'GTCAGTCAGTCA',
-                'ACTGACTGACTG')
+                'ACTGACTGACTG',
+		gap_score=-2,
+		mismatch_score=-1,
+		jump_score=-3)
     if read !=  'GTCGACTGACTG' or \
         ref1 != 'GTC         ' or \
         ref2 != '   GACTGACTG':
