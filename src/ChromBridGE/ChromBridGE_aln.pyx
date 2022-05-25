@@ -14,6 +14,7 @@ cdef int mymax4(int s1, int s2, int s3, int s4):
 
 @cython.boundscheck(False)
 @cython.nonecheck(False)
+@cython.initializedcheck(False)
 cpdef nw_breakpoint(str read_seq_py, 
                     str ref1_seq_py,
                     str ref2_seq_py, 
@@ -22,9 +23,12 @@ cpdef nw_breakpoint(str read_seq_py,
                     int gap_score=-2,
                     int perimeter_gap_extension_score=0,
                     int jump_score=-10,
-                    int cut_pos_incentive_score=1,
+                    int cut_pos_jump_incentive_score=1,
+                    int cut_pos_insertion_incentive_score=2,
+                    int cut_pos_tolerance_for_tx = 4,
                     ref1_cut_pos=None,
-                    ref2_cut_pos=None):
+                    ref2_cut_pos=None,
+		    bint debug=False):
     """
     Computes the optimal alignment of a read to two seqences, locating the optimal break between the two reads.
     The alignment score will be the sum of the match, mismatch, gap, and jump scores.
@@ -38,7 +42,9 @@ cpdef nw_breakpoint(str read_seq_py,
         gap_score: score for adding a gap in alignment
         perimeter_gap_extension_score: score for adding a gap in the first/last column/row, corresponding to gaps at the beginning or ends of sequences
         jump_score: score for jumping between ref1 and ref2
-        cut_pos_incentive_score: score for jumping at a predicted cut position
+        cut_pos_jump_incentive_score: score incentive for jumping at a predicted cut position
+        cut_pos_insertion_incentive_score: score incentive for insertions at a predicted cut position
+        cut_pos_tolerance_for_tx: number of bases away from the cut site a jump can occur for it to be counted as a translocation. Default is 4 because if a site has random insertions at the cut site, 4 random insertions matching the clipped donor strand sequence would occur with a probability of 1/4^4 = 1.56%. 
         ref1_cut_pos: position of predicted cut site in ref1
         ref2_cut_pos: position of predicted cut site in ref2
 
@@ -52,9 +58,10 @@ cpdef nw_breakpoint(str read_seq_py,
             ref1 and ref2 indices show the positions at which the optimal alignment switches to that reference.
         aln_score: score of alignment
         read_path: number of bases originating from each aligned read
-        tx_info: tuple of (bool: is_tx, str: tx_status) 
+        tx_info: tuple of (bool: is_tx, str: tx_status, int: tx_lucky_insertions) 
             is_tx: bool whether the alignment supports a translocation
             tx_status: summary string with additional details
+            tx_lucky_insertions: how many 'lucky' insertions were found - those that matched the reference beyond the cut site. If this number is less than cut_pos_tolerance_for_tx, the jump will be counted as a true translocation
 
     """
 
@@ -74,13 +81,21 @@ cpdef nw_breakpoint(str read_seq_py,
     cdef int len_ref1 = len(ref1_seq)
     cdef int len_ref2 = len(ref2_seq)
 
-    #set jump incentive arrays (where jumping is less penalized)
+    #set jump incentive arrays (where jumping is less penalized at cut sites)
     cdef int[:] jump_incentive_ref1 = np.zeros(len_ref1 + 1, dtype=score_type)
     if ref1_cut_pos is not None:
-        jump_incentive_ref1[ref1_cut_pos] = cut_pos_incentive_score
+        jump_incentive_ref1[ref1_cut_pos] = cut_pos_jump_incentive_score
     cdef int[:] jump_incentive_ref2 = np.zeros(len_ref2 + 1, dtype=score_type)
     if ref2_cut_pos is not None:
-        jump_incentive_ref2[ref2_cut_pos] = cut_pos_incentive_score
+        jump_incentive_ref2[ref2_cut_pos] = cut_pos_jump_incentive_score
+
+    #set insertion incentive arrays (where insertions are less penalized at cut sites)
+    cdef int[:] insertion_incentive_ref1 = np.zeros(len_ref1 + 1, dtype=score_type)
+    if ref1_cut_pos is not None:
+        insertion_incentive_ref1[ref1_cut_pos] = cut_pos_insertion_incentive_score
+    cdef int[:] insertion_incentive_ref2 = np.zeros(len_ref2 + 1, dtype=score_type)
+    if ref2_cut_pos is not None:
+        insertion_incentive_ref2[ref2_cut_pos] = cut_pos_insertion_incentive_score
 
     # Optimal score at each possible pair of characters.
     score1_py = np.zeros((len_ref1 + 1, len_read + 1), dtype=score_type)
@@ -149,7 +164,7 @@ cpdef nw_breakpoint(str read_seq_py,
             this_match_or_mismatch_score = mismatch_score #keep this separate for the jump score below
             if read_seq[idx_read-1] == ref1_seq[idx_ref1-1]:
                 this_match_or_mismatch_score = match_score
-            this_match_score = score1[idx_ref1-1,idx_read-1] + this_match_or_mismatch_score
+            this_match_score = score1[idx_ref1-1,idx_read-1] + this_match_or_mismatch_score 
 
             this_gap_up_score = gap_score
             if idx_read == len_read: #if the last column, no gap penalty
@@ -163,7 +178,7 @@ cpdef nw_breakpoint(str read_seq_py,
                 if idx_read == len_read:
                     this_gap_left_score = gap_score
 
-            this_read_gap_score = score1[idx_ref1,idx_read-1] + this_gap_left_score
+            this_read_gap_score = score1[idx_ref1,idx_read-1] + this_gap_left_score + insertion_incentive_ref1[idx_ref1]
             this_ref_gap_score = score1[idx_ref1-1,idx_read] + this_gap_up_score
             #technically, a 'jump' is a 'jump and consume' so it's two steps, but because you would never have two jumps in a row, we can consume a base from the read sequence and do two steps (jump and consume) in one step based on the max values from the last column
             this_jump_score = colmaxes2[idx_read-1] + jump_score + jump_incentive_ref1[idx_ref1 -1] + this_match_or_mismatch_score
@@ -221,7 +236,7 @@ cpdef nw_breakpoint(str read_seq_py,
                 if idx_read == len_read:
                     this_gap_left_score = gap_score
 
-            this_read_gap_score = score2[idx_ref2,idx_read-1] + this_gap_left_score
+            this_read_gap_score = score2[idx_ref2,idx_read-1] + this_gap_left_score + insertion_incentive_ref2[idx_ref2]
             this_ref_gap_score = score2[idx_ref2-1,idx_read] + this_gap_up_score
             this_jump_score = colmaxes1[idx_read-1] + jump_score + jump_incentive_ref2[idx_ref2 - 1] + this_match_or_mismatch_score
 
@@ -260,28 +275,29 @@ cpdef nw_breakpoint(str read_seq_py,
                 colmaxesInd2[idx_read] = idx_ref2
 
 
-#    np.set_printoptions(threshold=np.inf)
-#    print('jump_incentive_ref1')
-#    print(jump_incentive_ref1)
-#    print('score1:')
-#    print(score1)
-#    print('pointer1:')
-#    print(pointer1)
-#    print('colmaxes1:')
-#    print(colmaxes1)
-#    print('colmaxesInd1:')
-#    print(colmaxesInd1)
-#
-#    print('jump_incentive_ref2')
-#    print(jump_incentive_ref2)
-#    print('score2:')
-#    print(score2)
-#    print('pointer2:')
-#    print(pointer2)
-#    print('colmaxes2:')
-#    print(colmaxes2)
-#    print('colmaxesInd2:')
-#    print(colmaxesInd2)
+    if debug:
+        np.set_printoptions(threshold=np.inf)
+        print('jump_incentive_ref1')
+        print(np.array(jump_incentive_ref1))
+        print('score1:')
+        print(np.array(score1))
+        print('pointer1:')
+        print(np.array(pointer1))
+        print('colmaxes1:')
+        print(np.array(colmaxes1))
+        print('colmaxesInd1:')
+        print(np.array(colmaxesInd1))
+    
+        print('jump_incentive_ref2')
+        print(np.array(jump_incentive_ref2))
+        print('score2:')
+        print(np.array(score2))
+        print('pointer2:')
+        print(np.array(pointer2))
+        print('colmaxes2:')
+        print(np.array(colmaxes2))
+        print('colmaxesInd2:')
+        print(np.array(colmaxesInd2))
 
     # Trace through an optimal alignment.
     idx_read = len_read
@@ -390,6 +406,7 @@ cpdef nw_breakpoint(str read_seq_py,
 
     is_tx = False
     tx_status = 'Unknown/breakpoints not given (' + str(ref1_cut_pos) + ' and ' + str(ref2_cut_pos) + ')'
+    tx_lucky_insertions = None
     if (ref1_cut_pos is not None) and (ref2_cut_pos is not None):
         if len(breakpoints_read) == 0:
             is_tx = False
@@ -399,17 +416,28 @@ cpdef nw_breakpoint(str read_seq_py,
             is_tx = False
             tx_status = 'Multiple breakpoints detected'
         else:
-            if breakpoints_ref1[0] <= ref1_cut_pos and breakpoints_ref2[0] >= ref2_cut_pos and final_read_path[0] == 1 and final_read_path[1] == 2:
-                is_tx = True
-                tx_status = 'Tx A>B'
-            elif breakpoints_ref1[0] >= ref1_cut_pos and breakpoints_ref2[0] <= ref2_cut_pos and final_read_path[0] == 2 and final_read_path[1] == 1:
-                is_tx = True
-                tx_status = 'Tx B>A'
-            else: tx_status = 'Breakpoints incompatible with given cuts'
+            if (final_read_path[0] == 1 and final_read_path[1] == 2):
+                left_dist = max(breakpoints_ref1[0] - ref1_cut_pos,0)
+                right_dist = max(ref2_cut_pos - breakpoints_ref2[0],0)
+                tx_lucky_insertions = left_dist + right_dist
+                if left_dist + right_dist <= cut_pos_tolerance_for_tx:
+                    is_tx = True
+                    tx_status = 'Tx A>B'
+                else: 
+                    tx_status = 'Breakpoints incompatible with given cuts'
+            elif (final_read_path[0] == 2 and final_read_path[1] == 1):
+                left_dist = max(ref1_cut_pos - breakpoints_ref1[0],0)
+                right_dist = max(breakpoints_ref2[0] - ref2_cut_pos,0)
+                tx_lucky_insertions = left_dist + right_dist
+                if left_dist + right_dist <= cut_pos_tolerance_for_tx:
+                    is_tx = True
+                    tx_status = 'Tx B>A'
+                else: 
+                    tx_status = 'Breakpoints incompatible with given cuts'
 
     return(final_read_aln,final_ref1_aln,final_ref2_aln,
             (breakpoints_read[::-1],breakpoints_ref1[::-1],breakpoints_ref2[::-1]),
             max_score, final_read_path,
-            (is_tx, tx_status)
+            (is_tx, tx_status, tx_lucky_insertions)
             )
 
