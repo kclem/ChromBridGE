@@ -33,28 +33,19 @@ def get_first_matching_pos(read_aln_str, ref_aln_str,
         left_right_adjustment = 0 #if I start at the left and move right, the base I'm looking at will be one base to the right of the cut
 
     curr_aln_idx = aln_idx_break + left_right_adjustment
-#    print(f"{curr_aln_idx=}")
     curr_read_idx = read_idx_break
     curr_ref_idx = ref_idx_break
     while curr_aln_idx != stop_idx:
-#        print(f"{curr_aln_idx=}")
-#        print(f"{curr_ref_idx=}")
-#        print(f"{curr_read_idx=}")
-#        print('Comparing bases starting at read: ' + read_aln_str[curr_aln_idx] + ' and ' + ref_aln_str[curr_aln_idx])
         has_spaces = False
         bases_match = True
         for offset in range(num_bases_to_check):
             aln_idx_to_check = int(curr_aln_idx + (offset * increment))
-#            print(f"{offset=}")
             if ref_aln_str[aln_idx_to_check] == ' ':
                 has_spaces = True
                 break
             if ref_aln_str[aln_idx_to_check] != read_aln_str[aln_idx_to_check]:
                 bases_match = False
                 break
-
-#        print('has spaces: ' + str(has_spaces))
-#        print('bases match: ' + str(bases_match))
 
         if has_spaces:
             return({
@@ -78,9 +69,6 @@ def get_first_matching_pos(read_aln_str, ref_aln_str,
         if read_aln_str[curr_aln_idx] != '-':
             curr_read_idx += increment
 
-
-#    print('Hit stop..')
-#    print(f'{stop_idx=}')
     return({
         "success":False,
         "aln_ind":-1, 
@@ -118,20 +106,13 @@ def get_last_matching_pos(read_aln_str, ref_aln_str,
         stop_idx = len(read_aln_str)
         left_right_adjustment = 0 #if I start at the left and move right, the base I'm looking at will be one base to the right of the cut
 
-#    print('aln indx break: ' + str(aln_idx_break))
     curr_aln_idx = aln_idx_break + left_right_adjustment
-#    print(f"{curr_aln_idx=}")
     gap_count = 0
     mismatch_count = 0
     match_bases_count = 0
     match_read_bases_count = 0
     match_ref_bases_count = 0
     while curr_aln_idx != stop_idx:
-#        print('top of iter')
-#        print(f"{curr_aln_idx=}")
-#        print(f"{stop_idx=}")
-#        print('Comparing bases starting at read: ' + read_aln_str[curr_aln_idx] + ' and ' + ref_aln_str[curr_aln_idx])
-#            print(f"{offset=}")
         if ref_aln_str[curr_aln_idx] == ' ':
             return (match_bases_count, match_read_bases_count, match_ref_bases_count)
        
@@ -153,10 +134,6 @@ def get_last_matching_pos(read_aln_str, ref_aln_str,
         match_bases_count += 1
         curr_aln_idx += increment
 
-
-
-#    print('Hit stop..')
-#    print(f'{stop_idx=}')
     return (match_bases_count, match_read_bases_count, match_ref_bases_count)
 
 def get_ref_cut_pos_in_aln(read_aln_str, ref_aln_str, aln_idx_break, read_idx_break, ref_idx_break, ref_cut_pos):
@@ -175,16 +152,12 @@ def get_ref_cut_pos_in_aln(read_aln_str, ref_aln_str, aln_idx_break, read_idx_br
         ref_cut_pos_in_aln: index of cut position in the alignment
         ref_cut_pos_in_read: index of cut position in the read
     """
-#    print('getting ref cut pos for ' + str(ref_cut_pos) + ' and ' + str(ref_idx_break))
     if ref_cut_pos < ref_idx_break: #breakpoint to right of cut position
         curr_pos_in_ref = ref_idx_break
         curr_pos_in_aln = aln_idx_break
         curr_pos_in_read = read_idx_break
-#        print('curr_pos_in_ref: ' + str(curr_pos_in_ref))
-#        print('curr_pos_in_aln: ' + str(curr_pos_in_aln))
         while ref_cut_pos < curr_pos_in_ref:
             curr_pos_in_aln -= 1
-#           print('ref_aln_str is ' + str(ref_aln_str[curr_pos_in_aln]))
             if ref_aln_str[curr_pos_in_aln] != '-':
                 curr_pos_in_ref -= 1
             if read_aln_str[curr_pos_in_read] != '-':
@@ -197,13 +170,8 @@ def get_ref_cut_pos_in_aln(read_aln_str, ref_aln_str, aln_idx_break, read_idx_br
         curr_pos_in_ref = ref_idx_break
         curr_pos_in_aln = aln_idx_break
         curr_pos_in_read = read_idx_break
-#        print('2 curr_pos_in_ref: ' + str(curr_pos_in_ref))
-#        print('2 curr_pos_in_aln: ' + str(curr_pos_in_aln))
-#        print('ref aln str : ' + str(ref_aln_str))
-#        print('read aln str: ' + str(read_aln_str))
         while ref_cut_pos > curr_pos_in_ref:
             curr_pos_in_aln += 1
-#            print('2 ref_aln_str is ' + str(ref_aln_str[curr_pos_in_aln]))
             if ref_aln_str[curr_pos_in_aln] != '-':
                 curr_pos_in_ref += 1
             if read_aln_str[curr_pos_in_read] != '-':
@@ -266,7 +234,6 @@ def get_tx_offset(read_aln_str, ref_aln_str, aln_idx_break, read_idx_break, ref_
                 ref_idx_break = ref_idx_break,
                 ref_cut_pos = ref_cut_pos,
                 )
-#        print(f"{ref_cut_pos_in_aln}")
         if ref_cut_pos_in_aln is not None: #is none if breakpoint before ref cut pos
             beyond_match_info = get_last_matching_pos(read_aln_str, ref_aln_str,
                 ref_cut_pos_in_aln,-1*direction,
@@ -308,7 +275,6 @@ def get_tx_offset(read_aln_str, ref_aln_str, aln_idx_break, read_idx_break, ref_
             
     else: #does not have given cut_points
         before_match_info = get_first_matching_pos(read_aln_str, ref_aln_str, aln_idx_break, read_idx_break, ref_idx_break, min_num_bases_before_cut, direction)
-        print(f"{before_match_info=}")
         if before_match_info['success']:
             breakpoint_in_aln = before_match_info['aln_ind']
             num_bases_before_cut = direction*(breakpoint_in_aln - aln_idx_break)
@@ -403,7 +369,6 @@ def analyze_tx_alignment(read_aln_str, ref1_aln_str, ref2_aln_str,
     if len(read_path) > 0:
         if read_path[0] == 1 and read_path[-1] == 2: # transition ref1 to ref2
             final_path = [1,2]
-#            print('getting left------')
             left_tx_info = get_tx_offset(
                 read_aln_str = read_aln_str,
                 ref_aln_str =  ref1_aln_str,
@@ -421,7 +386,6 @@ def analyze_tx_alignment(read_aln_str, ref1_aln_str, ref2_aln_str,
             if ref1_cut_pos is not None:
                 left_bp_is_valid = True
                 final_breakpoint_ref1 = left_tx_info['breakpoint_in_ref']
-#            print('getting right------------')
             right_tx_info = get_tx_offset(
                 read_aln_str = read_aln_str,
                 ref_aln_str =  ref2_aln_str,
@@ -477,8 +441,6 @@ def analyze_tx_alignment(read_aln_str, ref1_aln_str, ref2_aln_str,
             if ref1_cut_pos is not None:
                 right_bp_is_valid = True
                 final_breakpoint_ref1 = right_tx_info['breakpoint_in_ref']
-#    print('\n==\nright: ' + str(right_tx_info))
-#    print('\n==\nleft: ' + str(left_tx_info))
 
     #add ~ for insertions at translocated regions
     read_aln_arr = list(read_aln_str)
@@ -498,6 +460,7 @@ def analyze_tx_alignment(read_aln_str, ref1_aln_str, ref2_aln_str,
     bp_match_ref2 = 0
     bp_insertion = 0
     for idx in range(len(read_aln_arr)):
+        # these lines delete insertions in the alignments that align to gaps (~) but could make the alignment unstable
 #        if read_aln_arr[idx] == '-' and ref1_aln_arr[idx] == '~' and ref2_aln_arr[idx] == '~':
 #            pass
 #        else:
@@ -517,12 +480,6 @@ def analyze_tx_alignment(read_aln_str, ref1_aln_str, ref2_aln_str,
     final_ref1_str = ''.join(final_ref1_aln_arr)
     final_ref2_str = ''.join(final_ref2_aln_arr)
 
-#    print(f'{final_path=}')
-#    print(f'{final_breakpoint_ref1=}')
-#    print(f'{final_breakpoint_ref2=}')
-#    print(f'{final_read_str=}')
-#    print(f'{final_ref1_str=}')
-#    print(f'{final_ref2_str=}')
 
     is_tx = False
     tx_status = 'Unknown/breakpoints not given (' + str(ref1_cut_pos) + ' and ' + str(ref2_cut_pos) + ')'
@@ -553,10 +510,6 @@ def analyze_tx_alignment(read_aln_str, ref1_aln_str, ref2_aln_str,
                     tx_status = 'Tx B>A'
                 else:
                     tx_status = 'Breakpoints incompatible with given cuts'
-#    print('tx status: ' + str(tx_status))
-
-
-
 
     return({"final_read_str":final_read_str,
             "final_ref1_str":final_ref1_str,
