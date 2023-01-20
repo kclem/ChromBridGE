@@ -2,6 +2,8 @@ ChromBridGE is a utility for detecting and characterizing translocations that ar
 
 Usage:
 
+```
+python ChromBridGE.py
 options:
   -h, --help            show this help message and exit
   -f FASTQ, --fastq FASTQ
@@ -26,4 +28,4 @@ options:
                         Incentive for jumping at a predicted cut site
   -o OUTPUT_FILE, --output_file OUTPUT_FILE
                         Output file to write results
-
+```
