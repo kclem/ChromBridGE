@@ -4,11 +4,11 @@ import random
 import os
 import re
 from collections import defaultdict
-from ChromBridGE import ChromBridGE_aln
+from ChromBridGE import ChromBridGE
 
 
 summ_file = os.path.basename(__file__)+'.summary.txt'
-max_max_pos = 0
+max_max_pos = 0 #determine read length
 all_res_seen_pos_counts = defaultdict(int)
 all_res_tx_pos_counts = defaultdict(int)
 with open(summ_file,'w') as summ_out:
@@ -52,12 +52,27 @@ with open(summ_file,'w') as summ_out:
                     matches_read += 1
                     if seq_line not in read_cache:
 
-                        read_aln,refA_aln,refB_aln,breakpoints,aln_score,read_path = ChromBridGE_aln.nw_breakpoint(seq_line,seq_a,seq_b,
+                        aln_info,tx_info = ChromBridGE.analyze_read(
+                            read_seq = seq_line,
+                            ref1_seq = seq_a,
+                            ref2_seq = seq_b,
                             ref1_cut_pos=cut_a_pos,
                             ref2_cut_pos=cut_b_pos)
-                        read_cache[seq_line] = breakpoints
+
+                        is_tx = tx_info['is_tx']
+                        read_cache[seq_line] = is_tx
+                        if is_tx:
+                            print('seq a: ' + str(seq_a))
+                            print('seq b: ' + str(seq_b))
+                            print('this run id: ' + str(this_run_id))
+                            print('cut_a_line: ' + str(cut_a_line))
+                            print('cut_b_line: ' + str(cut_b_line))
+                            print('cut_pos: ' + str(cut_pos))
+                            print(str(aln_info))
+                            print(str(tx_info))
+                            asdf()
                     else:
-                        breakpoints = read_cache[seq_line]
+                        is_tx = read_cache[seq_line]
 #                    if cut_a_pos in breakpoints[0]:
 #                        print(f"{read_aln=}")
 #                        print(f"{refA_aln=}")
@@ -67,11 +82,11 @@ with open(summ_file,'w') as summ_out:
 #                        asdf()
 
                     if cut_pos not in seen_pos_counts:
-                        print('cutpos: ' + str(cut_pos) + ' txpos: ' + str(breakpoints[0]))
-                        summ_out.write('\tcutpos: ' + str(cut_pos) + ' txpos: ' + str(breakpoints[0]))
-                        seen_pos_counts[cut_pos] += 1
-                        if cut_a_pos in breakpoints[0]:
-                            tx_pos_counts[cut_pos] += 1
+#                        print('cutpos: ' + str(cut_pos) + ' istx: ' + str(tx_info))
+                        summ_out.write('\tcutpos: ' + str(cut_pos) + ' txpos: ' + str(tx_info))
+                    seen_pos_counts[cut_pos] += 1
+                    if is_tx:
+                        tx_pos_counts[cut_pos] += 1
 
                 id_line = fin.readline()
                 seq_line = fin.readline().strip()

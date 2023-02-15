@@ -17,7 +17,7 @@ with open(cmd_file,'w') as cmd_out:
         this_root = "sims/"+os.path.basename(__file__) + ".sim_"+str(i)
 
         #here, we create guides with no similarity
-        (guide_left_A,guide_right_A,guide_left_B,guide_right_B) = Simulation.makeRandomGuides(num_mutations_in_guide=23,guide_length=23)
+        (guide_left_A,guide_right_A,guide_left_B,guide_right_B) = Simulation.makeRandomGuides(num_mutations_in_guide=20,guide_length_bp=20,predicted_cut_position=17)
 
         (left_A,right_A,left_B,right_B) = Simulation.makeRandomAmplicons(
                 guide_left_A = guide_left_A,
@@ -43,6 +43,7 @@ with open(cmd_file,'w') as cmd_out:
             fout.write("seqB\t"+seq_B+"\n")
 
         with open(this_root+".tx.fq",'w') as fout:
+            #first write reads with translocations
             for cut_ind in range(min(len(seq_A),len(seq_B))):
                 read = seq_A[0:cut_ind] + seq_B[cut_ind:]
                 qual = "H"*len(read)
@@ -55,6 +56,7 @@ with open(cmd_file,'w') as cmd_out:
                     fout.write("@%s_rep_%d\n"%(name,rep))
                     fout.write("%s\n+\n%s\n"%(this_read,qual))
 
+            #next write reads with only ref1
             read = seq_A
             qual = "H"*len(read)
             name = 'ref1'
@@ -71,14 +73,15 @@ with open(cmd_file,'w') as cmd_out:
             name = 'ref1_mod'
             for rep in range(num_ctl_reads):
                 this_read = read
-                this_del_start = int(20+random.random()*(len(this_read)-40))
-                this_del_end = int(20+random.random()*(len(this_read)-40))
+                this_del_start = int(20+random.random()*(len(this_read)-20))
+                this_del_end = int(20+random.random()*(len(this_read)-20))
                 this_del_start,this_del_end = sorted([this_del_start,this_del_end])
                 this_read = this_read[0:this_del_start] + this_read[this_del_end:]
                 this_qual = "H"*len(this_read)
                 fout.write("@%s_rep_%d\n"%(name,rep))
                 fout.write("%s\n+\n%s\n"%(this_read,this_qual))
 
+            #next write reads with only ref2
             read = seq_B
             qual = "H"*len(read)
             name = 'ref2'
@@ -103,6 +106,7 @@ with open(cmd_file,'w') as cmd_out:
                 fout.write("@%s_rep_%d\n"%(name,rep))
                 fout.write("%s\n+\n%s\n"%(this_read,this_qual))
 
+        #write mock read file (only read1 or read2, no tx or deletions)
         with open(this_root+".mock.fq",'w') as fout:
             read = seq_A
             qual = "H"*len(read)

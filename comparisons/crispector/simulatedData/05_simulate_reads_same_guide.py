@@ -7,7 +7,6 @@ import random
 total_count = 100
 correct_count_pos_not_given = 0
 correct_count_pos_given = 0
-num_mutations_in_guide = 1
 num_seq_reps = 100 #number of times each seq is repeated in the fastq file
 num_ctl_reads = 5000
 
@@ -17,7 +16,7 @@ with open(cmd_file,'w') as cmd_out:
     for i in range(total_count):
         this_root = "sims_same_guide/"+os.path.basename(__file__) + ".sim_"+str(i)
 
-        (guide_left_A,guide_right_A,guide_left_B,guide_right_B) = Simulation.makeRandomGuides(num_mutations_in_guide)
+        (guide_left_A,guide_right_A,guide_left_B,guide_right_B) = Simulation.makeRandomGuides(num_mutations_in_guide=0,guide_length_bp=20,predicted_cut_position=17)
 
         (left_A,right_A,left_B,right_B) = Simulation.makeRandomAmplicons(
                 guide_left_A = guide_left_A,

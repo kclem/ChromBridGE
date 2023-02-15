@@ -10,11 +10,15 @@ complement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
 def reverse_complement(seq):
     return "".join(complement.get(base, base) for base in reversed(seq))
 
+
+#RAG2_5
 cut_a_pos = 146
 ref_a = "GATGTGAGGACTAAGATTCTGCTTTGAAAGCAGAAAGGGAAGAGTTGCCACCATTTTAACATTTAGTGACTAGCTTATTTATATCCCCCTTGGCCACAGTGACAAAAACACAGCTTTATTTCTAAAGACAACCACACGGGCCATTATTCAGCCAGCCTTCTCAACTGATGATGACGTGAACTGTGAATCCACATTTTTTCCTGTTAATAGACAACTGAAATGGAACAAATATCCTGAACTCAC"
 
+#RAG2_1
 cut_b_pos = 104
 ref_b = "GATCTCATTTTGGATGTAAGCAGGGAAGAGCCTTGAAGAAAGTATTTATGCCTTGTGCTATTTGGTGGGGGGAGGGGTAGAAGGAGCAGGGAAGCCTGGCTGAATAAAGGGTAAGTGAGAGAAATGAGACAAGGCTCCTCCATCTCCTGTGGAGGGTGAGTTAGAGCACAGACTCAGGAAACTATGTCAAGAAATGAGCG"
+
 
 summ_file = os.path.basename(__file__)+'.summary.txt'
 details_file = os.path.basename(__file__)+'.details.txt'
@@ -83,6 +87,9 @@ with open(summ_file,'w') as summ_out, open(details_file,'w') as details_out:
                     else:
                         plot_entry = (2,breakpoints[2][idx],breakpoints[1][idx],tx_status)
                     plot_entries.append(plot_entry)
+
+                    print(f"{breakpoints=}")
+                    print('appended ' + str(plot_entry))
 #            print('TX')
 #            print(f"{ref_a=}")
 #            print(f"{ref_b=}")
@@ -93,7 +100,7 @@ with open(summ_file,'w') as summ_out, open(details_file,'w') as details_out:
 #            print(f"{aln_score=}")
 #
 #            asdf()
-            print('CRISPECTOR: ' + str(crispector_tx_status) + ' ' + line_els[0] + ' ChromBridGE: ' + tx_status)
+            print('CRSPCTR: ' + str(crispector_tx_status) + ' ' + line_els[0] + ' ChrmBrdGE: ' + tx_status)
 
             summ_out.write("\t".join(line_els) + "\t"+";".join([str(x) for x in breakpoints]) + "\t"+tx_status+"\n")
             details_out.write(line)
@@ -127,40 +134,51 @@ with open(all_res_b_file,'w') as res_out:
         res_out.write("%d\t%s\t%d\n"%(idx,'unlikely translocation',unlikely_tx_pos_count))
 
 b_bp = 20 #buffer
+#use offset to center at guide cut sites
+offset = cut_a_pos - cut_b_pos
+offset_a = 0
+offset_b = 0
+if offset > 0:
+    offset_b = offset
+else:
+    offset_a = -1*offset
+
 likely_tx_count = likely_AB_count + likely_BA_count
 with open(plot_file,'w') as plot_out:
-    xmax = max(len(ref_a),len(ref_b))
+    xmax = max(len(ref_a)+offset_a,len(ref_b)+offset_b)
     ymax = len(plot_entries)*2 + 2
     plot_out.write('pdf("'+plot_file+'.pdf")\n')
     plot_out.write('layout(matrix(c(1,2),1,2,byrow=T),widths=c(1,3))\n')
-    plot_out.write(f"barplot(c({likely_AB_count},{likely_BA_count},{unlikely_tx_count}),names=c('Tx A>B','Tx B>A','Unlikely Tx'),ylab='Count',xlab='Category')\n")
-    plot_out.write(f"plot(0,type='n',ylim=c(0-0.5,{ymax}+0.5),xlim=c(0,{xmax}),yaxt='n',ylab='Translocations between sequences',xlab='bp')\n")
+    plot_out.write(f"barplot(c({likely_AB_count},{likely_BA_count},{unlikely_tx_count}),names=c('Tx A>B','Tx B>A','Unlikely Tx'),ylab='Count',xlab='',las=2)\n")
+    plot_out.write(f"plot(0,type='n',ylim=c(0-0.5,{ymax}+0.5),xlim=c(0,{xmax}),yaxt='n',ylab='Translocations between sequences',xlab='bp',main='Locations of read translocations identified by CRISPECTOR')\n")
     plot_out.write(f"axis(side=2,at=c(0,{ymax}),labels=c('RAG2_5','RAG2_1'),las=2)\n")
     plot_out.write("#reference 1\n")
-    plot_out.write(f"segments(0,{ymax},{len(ref_a)},{ymax},lwd=2)\n")
-    plot_out.write(f"segments({cut_a_pos},{ymax}+0.5,{cut_a_pos},{ymax}-0.5,lwd=2,lty=2)\n")
+    plot_out.write(f"segments(0+{offset_a},{ymax},{len(ref_a)}+{offset_a},{ymax},lwd=2)\n")
+    plot_out.write(f"segments({cut_a_pos}+{offset_a},{ymax}+0.5,{cut_a_pos}+{offset_a},{ymax}-0.5,lwd=2,lty=2)\n")
     plot_out.write("#reference 2\n")
-    plot_out.write(f"segments(0,0,{len(ref_b)},0,lwd=2)\n")
-    plot_out.write(f"segments({cut_b_pos},0+0.5,{cut_b_pos},0-0.5,lwd=2,lty=2)\n")
+    plot_out.write(f"segments(0+{offset_b},0,{len(ref_b)}+{offset_b},0,lwd=2)\n")
+    plot_out.write(f"segments({cut_b_pos}+{offset_b},0+0.5,{cut_b_pos}+{offset_b},0-0.5,lwd=2,lty=2)\n")
+    plot_out.write(f"abline(v={cut_b_pos}+{offset_b},lty=2)\n")
     plot_out.write(f"cols = c('black','red3')\n")
     plot_out.write(f"s = seq(3)\n")
-    plot_out.write(f"legend('right',bty='n',col=cols,legend=c('Unlikely Tx N={unlikely_tx_count}','Likely Tx N={likely_tx_count}'))\n")
+    plot_out.write(f"legend('left',bty='n',fill=cols,legend=c('Unlikely Tx N={unlikely_tx_count}','Likely Tx N={likely_tx_count}'))\n")
 
     seq1_y = ymax-1
-    seq2_y = seq1_y - len(plot_entries)
+    seq2_y = seq1_y - 1
     for plot_entry in plot_entries:
         #starts on seq 1
-        xs = [plot_entry[1]-b_bp,plot_entry[1],plot_entry[2],plot_entry[2]+b_bp]
         if plot_entry[0] == 1:
+            xs = [plot_entry[1]-b_bp+offset_a,plot_entry[1]+offset_a,plot_entry[2]+offset_b,plot_entry[2]+b_bp+offset_b]
             ys = [seq1_y,seq1_y,seq2_y,seq2_y]
         else:
+            xs = [plot_entry[1]-b_bp+offset_b,plot_entry[1]+offset_b,plot_entry[2]+offset_a,plot_entry[2]+b_bp+offset_a]
             ys = [seq2_y,seq2_y,seq1_y,seq1_y]
         plot_out.write(f"xs = c("+",".join([str(x) for x in xs])+")\n")
         plot_out.write(f"ys = c("+",".join([str(y) for y in ys])+")\n")
         this_col_ind = 1
         if plot_entry[3] != 'Not Tx':
             this_col_ind = 2
-        plot_out.write(f"segments(xs[s],ys[s],xs[s+1],ys[s+1],col=cols[{this_col_ind}])\n")
-        seq1_y -= 1
-        seq2_y -= 1
+        plot_out.write(f"segments(xs[s],ys[s],xs[s+1],ys[s+1],col=cols[{this_col_ind}],lty=c(1,2,1))\n")
+        seq1_y -= 2
+        seq2_y -= 2
 
