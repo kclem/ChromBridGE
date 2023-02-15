@@ -359,11 +359,11 @@ def analyze_tx_alignment(read_aln_str, ref1_aln_str, ref2_aln_str,
     final_breakpoint_ref1 = None
     final_breakpoint_ref2 = None
 
-    left_tx_info = (False,0,0)
+    left_tx_info = None
     left_dist = None #how many bp match beyond cut site (pos) or deleted (negative)
     left_bp_is_valid = False
 
-    right_tx_info = (False,0,0)
+    right_tx_info = None
     right_dist = None
     right_bp_is_valid = False
     if len(read_path) > 0:
@@ -447,7 +447,8 @@ def analyze_tx_alignment(read_aln_str, ref1_aln_str, ref2_aln_str,
     ref1_aln_arr = list(ref1_aln_str)
     ref2_aln_arr = list(ref2_aln_str)
 
-    if left_tx_info['found_break'] and right_tx_info['found_break']:
+    if left_tx_info is not None and right_tx_info is not None and \
+            left_tx_info['found_break'] and right_tx_info['found_break']:
         for idx in range(left_tx_info['breakpoint_in_aln'], right_tx_info['breakpoint_in_aln']):
             ref1_aln_arr[idx] = '~'
             ref2_aln_arr[idx] = '~'

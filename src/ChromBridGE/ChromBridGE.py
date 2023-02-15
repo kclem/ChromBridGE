@@ -121,17 +121,18 @@ def analyze_read(read_seq, ref1_seq, ref2_seq,
             breakpoints_ref2: indices in ref2 of breakpoints in the optimal alignment
             aln_score: score of alignment
             read_path: index of ref that the read is aligned to, corresponding to the break points (there will be len(breakpoints)+1 items in read_path)
-        refined_aln: dict with keys:
+
+        tx_info: dict with keys:
             final_read_str: string of read alignment
             final_ref1_str: string of bases for which read aligns to ref1 - including '~' for trimmed insertions at translocation sites
             final_ref2_str: string of bases for which read aligns to ref2 - including '~' for trimmed insertions at translocation sites
             final_path: indices of the ref that the read is aligned to
-            final_breakpoints_ref1: locations in the ref1 corresponding to translocations in ref1
-            final_breakpoints_ref2: locations in the ref2 corresponding to translocations in ref2
+            final_breakpoints_ref1: locations in the ref1 corresponding to translocations in ref1 (same length as final_breakpoints_read_ref1)
+            final_breakpoints_ref2: locations in the ref2 corresponding to translocations in ref2 (same length as final_breakpoints_read_ref2)
             bp_match_ref1: number of bp in final alignment that match read and ref1 exactly
             bp_match_ref2: number of bp in final alignment that match read and ref2 exactly
             bp_insertion: number of bp that are inserted (match neither reference)
-        tx_info: dict with keys:
+
             is_tx: boolean for whether the read looks like a translocation
             tx_status: string with details for tx result
             left_distance: int, number of bp the read extends beyond the cut to the right (from the left-identified reference)
