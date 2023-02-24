@@ -87,7 +87,7 @@ def analyze_read(read_seq, ref1_seq, ref2_seq,
                     gap_tolerance=0,
 		            debug=False):
     """
-    Computes the optimal alignment of a read to two seqences, locating the optimal break between the two reads, refines the site of translocation by identifying sites with at least num_bases_to_check exact matches, and determines whether the sequences are compatible with a translocation event.
+    Computes the optimal alignment of a read to two sequences, locating the optimal break between the two reads, refines the site of translocation by identifying sites with at least num_bases_to_check exact matches, and determines whether the sequences are compatible with a translocation event.
 
     params:
         read_seq: read to align to the other two sequences
@@ -136,7 +136,7 @@ def analyze_read(read_seq, ref1_seq, ref2_seq,
             is_tx: boolean for whether the read looks like a translocation
             tx_status: string with details for tx result
             left_distance: int, number of bp the read extends beyond the cut to the right (from the left-identified reference)
-            right_distance: int, number of bp the read extends beyong the cut to the left (from the right-identified reference)
+            right_distance: int, number of bp the read extends beyond the cut to the left (from the right-identified reference)
                 Read: AAAA|TTTT
                 Ref:  AAAATT  > left-distance is 2 because it extended beyond the cut by 2bp
                 Read: AAAA|TTTT
