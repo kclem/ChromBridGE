@@ -138,7 +138,7 @@ def get_last_matching_pos(read_aln_str, ref_aln_str,
 
 def get_ref_cut_pos_in_aln(read_aln_str, ref_aln_str, aln_idx_break, read_idx_break, ref_idx_break, ref_cut_pos):
     """
-    Given two alignements, get the index within that alignment and the read of the reference cut position
+    Given two alignments, get the index within that alignment and the read of the reference cut position
 
     params:
         read_aln_str: Alignment of the read (including gaps)
@@ -215,6 +215,7 @@ def get_tx_offset(read_aln_str, ref_aln_str, aln_idx_break, read_idx_break, ref_
         dict of:
             num_bases_beyond_cut: number of reference bases beyond cut (or 0 if ref_cut_pos is not given)
             num_bases_before_cut: number of bases before cut (or 0 if {num_bases_to_check} matching bases couldn't be found)
+            num_bases_offset: number of bases before (negative) or after (positive) the cut site
             found_break: boolean, whether breakpoint could be found with less than {num_bases_to_check} beyond the cut, but with more than num_bases_to_check bases after the cut
             breakpoint_aln: location of breakpoint in alignment
             breakpoint_ref: location of breakpoint in reference sequence
@@ -265,7 +266,7 @@ def get_tx_offset(read_aln_str, ref_aln_str, aln_idx_break, read_idx_break, ref_
             if before_match_info['success']:
                 found_break = True
                 num_bases_beyond_cut = 0
-                num_bases_before_cut = ref_cut_pos - before_match_info['ref_ind']
+                num_bases_before_cut = -1*direction*(ref_cut_pos - before_match_info['ref_ind'])
                 breakpoint_in_aln = before_match_info['aln_ind']
                 breakpoint_in_ref = before_match_info['ref_ind']
             else: #couldn't find bases before breakpoint
@@ -334,12 +335,12 @@ def analyze_tx_alignment(read_aln_str, ref1_aln_str, ref2_aln_str,
         is_tx: boolean for whether the read looks like a translocation
         tx_status: string with details for tx result
         left_distance: int, number of bp the read extends beyond the cut to the right (from the left-identified reference)
-        right_distance: int, number of bp the read extends beyong the cut to the left (from the right-identified reference)
+        right_distance: int, number of bp the read extends beyond the cut to the left (from the right-identified reference)
             Read: AAAA|TTTT
             Ref:  AAAATT  > left-distance is 2 because it extended beyond the cut by 2bp
             Read: AAAA|TTTT
             Ref:  AA      > left-distance is -2 because it was within the cut by 2bp
-        tx_lucky_insertions: sum of the left- and right- distances if they extend beyond the cut. If the cut actually happened, these would be lucky insertions that happened to match the uncut reference sequence
+        tx_lucky_insertions: sum of the left- and right- distances if they extend beyond the cut. If the cut actually happened, these would be lucky insertions that happened to match the uncut reference sequence. If cuts are not given this value is 0.
     """
 
     #first, get the coordinates of the alignment with regard to the read
@@ -484,7 +485,7 @@ def analyze_tx_alignment(read_aln_str, ref1_aln_str, ref2_aln_str,
 
     is_tx = False
     tx_status = 'Unknown/breakpoints not given (' + str(ref1_cut_pos) + ' and ' + str(ref2_cut_pos) + ')'
-    tx_lucky_insertions = None
+    tx_lucky_insertions = 0
 
     if (ref1_cut_pos is not None) and (ref2_cut_pos is not None):
         if len(read_path) == 1:
@@ -536,6 +537,134 @@ if __name__ == "__main__":
 #    from ChromBridGE.ChromBridGE_aln import nw_breakpoint
     from ChromBridGE_aln import nw_breakpoint
     print('Performing tests..')
+
+    print('Testing matching bases on both sides of breakpoint with cut given (left_dist, right_dist, and tx_lucky_insertions)')
+    # cut is | breakpoint is ^
+    seq_A =    "TGTCGCCCCCCAGCCAGCACGGT^CGCACG|CGTCTGCGCTGGGTGATTTGTA"
+    read_seq = "TGTCGCCCCCCAGCCAGCACGGT^GTAACG|GACTAATGTGACATGTCCGGCA"
+    seq_B =    "ACCGCGGTTTGTTCCTATGTCAG^GTAACG|GACTAATGTGACATGTCCGGCA"
+    cut_A = seq_A.replace('^','').index('|') if '|' in seq_A else None
+    cut_B = seq_B.replace('^','').index('|') if '|' in seq_B else None
+    aln_info = nw_breakpoint(
+                read_seq.replace('|','').replace("^",""),
+                seq_A.replace('|','').replace("^",""),
+                seq_B.replace('|','').replace("^",""),
+                ref1_cut_pos=cut_A,
+                ref2_cut_pos=cut_B
+    )
+    print('aln_info: ' + str(aln_info))
+    tx_info = analyze_tx_alignment(
+            read_aln_str = aln_info['read_aln'],
+            ref1_aln_str = aln_info['ref1_aln'],
+            ref2_aln_str = aln_info['ref2_aln'],
+            breakpoints_read = aln_info['breakpoints_read'],
+            breakpoints_ref1 = aln_info['breakpoints_ref1'],
+            breakpoints_ref2 = aln_info['breakpoints_ref2'],
+            read_path = aln_info['read_path'],
+            ref1_cut_pos = cut_A,
+            ref2_cut_pos = cut_B)
+
+    print('tx_info: ' + str(tx_info))
+    assert(tx_info['left_dist'] == -6) # left side has 6 deletions
+    assert(tx_info['right_dist'] == 6) #  right side has 6 insertions
+    assert(tx_info['tx_lucky_insertions'] == 6)
+
+    seq_A =    "TGTCGCCCCCCAGCCAGCACGGTCGCACG|CGTCTG^CGCTGGGTGATTTGTA"
+    read_seq = "TGTCGCCCCCCAGCCAGCACGGTCGCACG|CGTCTG^TGTGACATGTCCGGCA"
+    seq_B =    "ACCGCGGTTTGTTCCTATGTCAGGTAACG|GACTAA^TGTGACATGTCCGGCA"
+    cut_A = seq_A.replace('^','').index('|') if '|' in seq_A else None
+    cut_B = seq_B.replace('^','').index('|') if '|' in seq_B else None
+    aln_info = nw_breakpoint(
+                read_seq.replace('|','').replace("^",""),
+                seq_A.replace('|','').replace("^",""),
+                seq_B.replace('|','').replace("^",""),
+                ref1_cut_pos=cut_A,
+                ref2_cut_pos=cut_B
+    )
+    print('aln_info: ' + str(aln_info))
+    #print('read: ' + aln_info['read_aln'])
+    #print('ref1: ' + aln_info['ref1_aln'])
+    #print('ref2: ' + aln_info['ref2_aln'])
+    #print('breakpoints_read: ' + str(aln_info['breakpoints_read']))
+    #print('breakpoints_ref1: ' + str(aln_info['breakpoints_ref1']))
+    #print('breakpoints_ref2: ' + str(aln_info['breakpoints_ref2']))
+    #print('read_path: ' + str(aln_info['read_path']))
+    tx_info = analyze_tx_alignment(
+            read_aln_str = aln_info['read_aln'],
+            ref1_aln_str = aln_info['ref1_aln'],
+            ref2_aln_str = aln_info['ref2_aln'],
+            breakpoints_read = aln_info['breakpoints_read'],
+            breakpoints_ref1 = aln_info['breakpoints_ref1'],
+            breakpoints_ref2 = aln_info['breakpoints_ref2'],
+            read_path = aln_info['read_path'],
+            ref1_cut_pos = cut_A,
+            ref2_cut_pos = cut_B)
+
+    print('tx_info: ' + str(tx_info))
+    assert(tx_info['left_dist'] == 6) # left side has 6 insertions
+    assert(tx_info['right_dist'] == -6) #  right side has 6 deletions
+    assert(tx_info['tx_lucky_insertions'] == 6)
+
+    print('Testing transitions B>A')
+    seq_A =    "ACCGCGGTTTGTTCCTATGTCAG^GTAACG|GACTAATGTGACATGTCCGGCA"
+    read_seq = "TGTCGCCCCCCAGCCAGCACGGT^GTAACG|GACTAATGTGACATGTCCGGCA"
+    seq_B =    "TGTCGCCCCCCAGCCAGCACGGT^CGCACG|CGTCTGCGCTGGGTGATTTGTA"
+    cut_A = seq_A.replace('^','').index('|') if '|' in seq_A else None
+    cut_B = seq_B.replace('^','').index('|') if '|' in seq_B else None
+    aln_info = nw_breakpoint(
+                read_seq.replace('|','').replace("^",""),
+                seq_A.replace('|','').replace("^",""),
+                seq_B.replace('|','').replace("^",""),
+                ref1_cut_pos=cut_A,
+                ref2_cut_pos=cut_B
+    )
+    print('aln_info: ' + str(aln_info))
+    tx_info = analyze_tx_alignment(
+            read_aln_str = aln_info['read_aln'],
+            ref1_aln_str = aln_info['ref1_aln'],
+            ref2_aln_str = aln_info['ref2_aln'],
+            breakpoints_read = aln_info['breakpoints_read'],
+            breakpoints_ref1 = aln_info['breakpoints_ref1'],
+            breakpoints_ref2 = aln_info['breakpoints_ref2'],
+            read_path = aln_info['read_path'],
+            ref1_cut_pos = cut_A,
+            ref2_cut_pos = cut_B)
+
+    print('tx_info: ' + str(tx_info))
+    assert(tx_info['left_dist'] == -6) # left side has 6 deletions
+    assert(tx_info['right_dist'] == 6) #  right side has 6 insertions
+    assert(tx_info['tx_lucky_insertions'] == 6)
+
+    #                                         LLLLLLL < 7 deletions from right
+    seq_A =    "ACCGCGGTTTGTTCCTATGTCAGGTAACG|GACTAAG^TGTGACATGTCCGGCA"
+    read_seq = "TGTCGCCCCCCAGCCAGCACGGTCGCACG|CGTCT^^^TGTGACATGTCCGGCA"
+    seq_B =    "TGTCGCCCCCCAGCCAGCACGGTCGCACG|CGTCT^GCGCTGGGTGATTTGTA"
+    #                                         RRRRR < 5 insertions from left
+    cut_A = seq_A.replace('^','').index('|') if '|' in seq_A else None
+    cut_B = seq_B.replace('^','').index('|') if '|' in seq_B else None
+    aln_info = nw_breakpoint(
+                read_seq.replace('|','').replace("^",""),
+                seq_A.replace('|','').replace("^",""),
+                seq_B.replace('|','').replace("^",""),
+                ref1_cut_pos=cut_A,
+                ref2_cut_pos=cut_B
+    )
+    print('aln_info: ' + str(aln_info))
+    tx_info = analyze_tx_alignment(
+            read_aln_str = aln_info['read_aln'],
+            ref1_aln_str = aln_info['ref1_aln'],
+            ref2_aln_str = aln_info['ref2_aln'],
+            breakpoints_read = aln_info['breakpoints_read'],
+            breakpoints_ref1 = aln_info['breakpoints_ref1'],
+            breakpoints_ref2 = aln_info['breakpoints_ref2'],
+            read_path = aln_info['read_path'],
+            ref1_cut_pos = cut_A,
+            ref2_cut_pos = cut_B)
+
+    print('tx_info: ' + str(tx_info))
+    assert(tx_info['left_dist'] == 5) # left side has 5 insertions
+    assert(tx_info['right_dist'] == -7) #  right side has 7 deletions
+    assert(tx_info['tx_lucky_insertions'] == 5)
 
     seq_A = "TACTGCGCCAATAAGTTACGGTACTGTCGCCCCCCAGCCAGCACGGGGGCACG|CGTCTGCGCTGGGTGATTTGTACATAGTAGCATTGTTAATCAACTCGGCGACGCAGGAGGAAACGGAGAG"
     seq_B = "CAGGAGACGCGCTCATGGTGATGCGCCGCGGTTTGTTCCTATGTCAGGTAACG|CGTCTGCGCTGGGTGATTTGCTCACATAAAAAACGAGAAGGCCAGTCCCACTAATGTGACATGTCCGGCA"
