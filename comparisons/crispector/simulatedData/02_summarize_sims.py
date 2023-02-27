@@ -137,7 +137,7 @@ with open(summ_file,'w') as summ_out:
                 r2_line_count += 1
                 line_els = line.strip().split(",")
                 read_count = int(line_els[1])
-                r2_read_count += r2_read_count
+                r2_read_count += read_count
                 read = line_els[0]
                 edited_status = line_els[18] == 'True'
                 crispector_count_dict[read] += read_count
