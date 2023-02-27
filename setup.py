@@ -9,7 +9,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 setup(
     ext_modules=cythonize("src/ChromBridGE/ChromBridGE_aln.pyx"),
     name = "ChromBridGE",
-    version = "0.0.4",
+    version = "0.0.5",
     author = "Kendell Clement",
     author_email = "kclement@mgh.harvard.edu",
     description = "Detection of CRISPR-Cas-associated translocations from next-generation sequencing data",

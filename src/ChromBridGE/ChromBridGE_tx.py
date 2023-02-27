@@ -323,7 +323,7 @@ def analyze_tx_alignment(read_aln_str, ref1_aln_str, ref2_aln_str,
     returns:
         dict containing keys:
         final_read_str: string of read alignment
-        final_ref1_str: string of bases for which read aligns to ref1 - including '~' for trimmed insertions at translocation sites
+        final_ref1_str: string of bases for which read aligns to ref1 - including '~' for trimmed insertions at translocation sites 
         final_ref2_str: string of bases for which read aligns to ref2 - including '~' for trimmed insertions at translocation sites
         final_path: indices of the ref that the read is aligned to
         final_breakpoints_ref1: locations in the ref1 corresponding to translocations in ref1 (same length as final_breakpoints_read_ref1)

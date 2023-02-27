@@ -72,13 +72,18 @@ cpdef nw_breakpoint(str read_seq_py,
     cdef int len_ref1 = len(ref1_seq)
     cdef int len_ref2 = len(ref2_seq)
 
+    cdef int prefer_cut_ref1_idx = len_ref1 #if above/lower than this idx prefer match/mismatch over jump. If below/greater than this idx prefer jump over match/mismatch
+    cdef int prefer_cut_ref2_idx = len_ref2
+
     #set jump incentive arrays (where jumping is less penalized at cut sites)
     cdef int[:] jump_incentive_ref1 = np.zeros(len_ref1 + 1, dtype=score_type)
     if ref1_cut_pos is not None:
         jump_incentive_ref1[ref1_cut_pos] = cut_pos_jump_incentive_score
+        prefer_cut_ref1_idx = 0
     cdef int[:] jump_incentive_ref2 = np.zeros(len_ref2 + 1, dtype=score_type)
     if ref2_cut_pos is not None:
         jump_incentive_ref2[ref2_cut_pos] = cut_pos_jump_incentive_score
+        prefer_cut_ref2_idx = 0
 
     # Optimal score at each possible pair of characters.
     score1_py = np.zeros((len_ref1 + 1, len_read + 1), dtype=score_type)
@@ -185,14 +190,26 @@ cpdef nw_breakpoint(str read_seq_py,
 
 
             score1[idx_ref1,idx_read] = tmax
-            if this_match_score == tmax:
-                pointer1[idx_ref1,idx_read] = pointer_match
-            elif this_ref_gap_score == tmax:
-                pointer1[idx_ref1,idx_read] = pointer_gap_ref
-            elif this_read_gap_score == tmax:
-                pointer1[idx_ref1,idx_read] = pointer_gap_read
-            elif this_jump_score == tmax:
-                pointer1[idx_ref1,idx_read] = pointer_jump
+            if idx_ref1 < prefer_cut_ref1_idx:
+                # prefer jump over match/mismatch if above
+                if this_jump_score == tmax:
+                    pointer1[idx_ref1,idx_read] = pointer_jump
+                elif this_match_score == tmax:
+                    pointer1[idx_ref1,idx_read] = pointer_match
+                elif this_ref_gap_score == tmax:
+                    pointer1[idx_ref1,idx_read] = pointer_gap_ref
+                elif this_read_gap_score == tmax:
+                    pointer1[idx_ref1,idx_read] = pointer_gap_read
+            else:
+                # prefer match/mismatch/gap if below
+                if this_match_score == tmax:
+                    pointer1[idx_ref1,idx_read] = pointer_match
+                elif this_ref_gap_score == tmax:
+                    pointer1[idx_ref1,idx_read] = pointer_gap_ref
+                elif this_read_gap_score == tmax:
+                    pointer1[idx_ref1,idx_read] = pointer_gap_read
+                elif this_jump_score == tmax:
+                    pointer1[idx_ref1,idx_read] = pointer_jump
 
 #            print('comparing tmax ' + str(tmax) + ' to val: ' + str(colmaxes1[idx_read]))
             tmax_plus_jump = tmax + jump_incentive_ref1[idx_ref1]
@@ -242,14 +259,24 @@ cpdef nw_breakpoint(str read_seq_py,
 #            print(pointer2)
 
             score2[idx_ref2,idx_read] = tmax
-            if this_match_score == tmax:
-                pointer2[idx_ref2,idx_read] = pointer_match
-            elif this_ref_gap_score == tmax:
-                pointer2[idx_ref2,idx_read] = pointer_gap_ref
-            elif this_read_gap_score == tmax:
-                pointer2[idx_ref2,idx_read] = pointer_gap_read
-            elif this_jump_score == tmax:
-                pointer2[idx_ref2,idx_read] = pointer_jump
+            if idx_ref2 < prefer_cut_ref2_idx:
+                if this_jump_score == tmax:
+                    pointer2[idx_ref2,idx_read] = pointer_jump
+                elif this_match_score == tmax:
+                    pointer2[idx_ref2,idx_read] = pointer_match
+                elif this_ref_gap_score == tmax:
+                    pointer2[idx_ref2,idx_read] = pointer_gap_ref
+                elif this_read_gap_score == tmax:
+                    pointer2[idx_ref2,idx_read] = pointer_gap_read
+            else:
+                if this_match_score == tmax:
+                    pointer2[idx_ref2,idx_read] = pointer_match
+                elif this_ref_gap_score == tmax:
+                    pointer2[idx_ref2,idx_read] = pointer_gap_ref
+                elif this_read_gap_score == tmax:
+                    pointer2[idx_ref2,idx_read] = pointer_gap_read
+                elif this_jump_score == tmax:
+                    pointer2[idx_ref2,idx_read] = pointer_jump
 
 #            print('comparing tmax ' + str(tmax) + ' to val: ' + str(colmaxes2[idx_read]))
             tmax_plus_jump = tmax + jump_incentive_ref2[idx_ref2]

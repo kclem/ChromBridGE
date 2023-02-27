@@ -96,7 +96,6 @@ if __name__ == "__main__":
        aln_info['ref2_aln'] != '   A':
             raise Exception('TEST DID NOT PASS\nread: ' + aln_info['read_aln'] + '\nref1: ' + aln_info['ref1_aln'] + '\nref2: ' + aln_info['ref2_aln'])
 
-    #here, the jump-match-mismatch (-6 +3 -3 = -6) is better than the jump at the breakpoint gap-gap-jump (-3+1 -3+1 -6+2 = -8)
     aln_info = nw_breakpoint(
                 'AGTGGA',
                 'AGCGG'.replace(" ",""),
@@ -106,7 +105,7 @@ if __name__ == "__main__":
                 jump_score=-6,
                 cut_pos_jump_incentive_score=2,
                 ref1_cut_pos=2,
-                ref2_cut_pos=3,
+                ref2_cut_pos=2,
                 )
     if aln_info['read_aln'] != 'AGTGGA' or \
        aln_info['ref1_aln'] != 'AG    ' or \
@@ -115,6 +114,7 @@ if __name__ == "__main__":
 
     #this test tests for breakpoint positions as well as preference for gaps to be at the end and the sequences compressed inward
     # e.g. not this: --ACG-TT--
+    #this has multiple solutions...
     aln_info = nw_breakpoint(
                   'ACGTT',
                 'GGACAA',
@@ -124,12 +124,13 @@ if __name__ == "__main__":
           jump_score=-2,
           ref1_cut_pos=None,
           ref2_cut_pos=None)
+#    print('aln info: ' + str(aln_info))
     if aln_info['read_aln'] != '--ACGTT---' or \
-       aln_info['ref1_aln'] != 'GGA       ' or \
-       aln_info['ref2_aln'] != '   CGTTTAA' or \
-       aln_info['breakpoints_read'] != [1] or \
-       aln_info['breakpoints_ref1'] != [3] or \
-       aln_info['breakpoints_ref2'] != [0] or \
+       aln_info['ref1_aln'] != 'GGAC      ' or \
+       aln_info['ref2_aln'] != '    GTTTAA' or \
+       aln_info['breakpoints_read'] != [2] or \
+       aln_info['breakpoints_ref1'] != [4] or \
+       aln_info['breakpoints_ref2'] != [1] or \
        aln_info['read_path'] != [1,2]:
             raise Exception('TEST DID NOT PASS\nread: ' + aln_info['read_aln'] + '\nref1: ' + aln_info['ref1_aln'] + '\nref2: ' + aln_info['ref2_aln'])
 
@@ -322,6 +323,45 @@ if __name__ == "__main__":
        aln_info['ref1_aln'] != 'GTC         ' or \
        aln_info['ref2_aln'] != '   GACTGACTG':
             raise Exception('TEST DID NOT PASS\nread: ' + aln_info['read_aln'] + '\nref1: ' + aln_info['ref1_aln'] + '\nref2: ' + aln_info['ref2_aln'])
+
+
+
+    #test for shifting jump to the left or right when not at cut site
+    aln_info = nw_breakpoint(
+                'AAATGGG'.replace(' ',''),
+                'AAATG'.replace(' ',''),
+                '  ATGGG'.replace(' ',''),
+          gap_score=-3,
+          mismatch_score=-3,
+          jump_score=-2,
+          ref1_cut_pos=0,
+          ref2_cut_pos=0)
+    if aln_info['read_aln'] != 'AAATGGG' or \
+       aln_info['ref1_aln'] != 'AA     ' or \
+       aln_info['ref2_aln'] != '  ATGGG' or \
+       aln_info['breakpoints_read'] != [2] or \
+       aln_info['breakpoints_ref1'] != [2] or \
+       aln_info['breakpoints_ref2'] != [0] or \
+       aln_info['read_path'] != [1,2]:
+            raise Exception('TEST DID NOT PASS\nread: ' + aln_info['read_aln'] + '\nref1: "' + aln_info['ref1_aln'] + '"\nref2: "' + aln_info['ref2_aln']+'"')
+
+    aln_info = nw_breakpoint(
+                'AAATGGG'.replace(' ',''),
+                'AAATG'.replace(' ',''),
+                '  ATGGG'.replace(' ',''),
+          gap_score=-3,
+          mismatch_score=-3,
+          jump_score=-2,
+          ref1_cut_pos=5,
+          ref2_cut_pos=5)
+    if aln_info['read_aln'] != 'AAATGGG' or \
+       aln_info['ref1_aln'] != 'AAATG  ' or \
+       aln_info['ref2_aln'] != '     GG' or \
+       aln_info['breakpoints_read'] != [5] or \
+       aln_info['breakpoints_ref1'] != [5] or \
+       aln_info['breakpoints_ref2'] != [3] or \
+       aln_info['read_path'] != [1,2]:
+            raise Exception('TEST DID NOT PASS\nread: ' + aln_info['read_aln'] + '\nref1: "' + aln_info['ref1_aln'] + '"\nref2: "' + aln_info['ref2_aln']+'"')
 
 
 
