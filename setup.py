@@ -5,7 +5,6 @@ from Cython.Build import cythonize
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
-
 setup(
     ext_modules=cythonize("src/ChromBridGE/ChromBridGE_aln.pyx"),
     name = "ChromBridGE",
@@ -16,7 +15,8 @@ setup(
     long_description=long_description,
     keywords = "NGS Translocations",
     package_dir={"": "src"},
-    packages=find_packages(),
+    packages=find_packages(where='src'),
+    py_modules=['ChromBridGE','ChromBridGE.ChromBridGE_tx'],
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Topic :: Utilities",
