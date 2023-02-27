@@ -79,11 +79,11 @@ cpdef nw_breakpoint(str read_seq_py,
     cdef int[:] jump_incentive_ref1 = np.zeros(len_ref1 + 1, dtype=score_type)
     if ref1_cut_pos is not None:
         jump_incentive_ref1[ref1_cut_pos] = cut_pos_jump_incentive_score
-        prefer_cut_ref1_idx = 0
+        prefer_cut_ref1_idx = ref1_cut_pos + 1
     cdef int[:] jump_incentive_ref2 = np.zeros(len_ref2 + 1, dtype=score_type)
     if ref2_cut_pos is not None:
         jump_incentive_ref2[ref2_cut_pos] = cut_pos_jump_incentive_score
-        prefer_cut_ref2_idx = 0
+        prefer_cut_ref2_idx = ref2_cut_pos + 1
 
     # Optimal score at each possible pair of characters.
     score1_py = np.zeros((len_ref1 + 1, len_read + 1), dtype=score_type)
